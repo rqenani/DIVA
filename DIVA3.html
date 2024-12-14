@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIVA 2.1</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .navbar {
+            background-color: #007BFF;
+            padding: 15px;
+            color: white;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .container {
+            margin: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tfoot {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        .notes {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #fff3cd;
+            border-radius: 5px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        DIVA 2.1 - Llogarit Detyrimet Individuale Vjetore Aktive
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>DIVA 2.1</h1>
+            <p><strong>Risi:</strong> TAP i Llogaritur tani llogaritet sipas formulës së TAP në Shqipëri, bazuar në qelizën Paga Bruto për çdo rresht.</p>
+        </div>
+
+        <div class="notes">
+            <strong>Shënim:</strong> Futni të dhënat për punët dhe sistemi do të llogarisë automatikisht TAP dhe të gjitha totalet sipas legjislacionit. Për eksport ose printim, përdorni opsionet e disponueshme.
+        </div>
+
+        <table id="divaTable" class="display">
+            <thead>
+                <tr>
+                    <th>Puna</th>
+                    <th>Paga Bruto</th>
+                    <th>TAP i Llogaritur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 24 Punë Default -->
+                " + "".join([f'<tr><td contenteditable="true">Puna {i}</td><td contenteditable="true">0</td><td id="tapCalculated{i}">0</td></tr>' for i in range(1, 25)]) + "
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="1">Total</th>
+                    <th id="totalGrossSalary">0</th>
+                    <th id="totalTapCalculated">0</th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div>
+            <button class="btn" id="addRow">Shto Rresht</button>
+            <button class="btn" id="removeRow">Hiq Rresht</button>
+        </div>
+
+        <h2>Tabela për TAP Total</h2>
+        <table id="tapComparison" class="display">
+            <thead>
+                <tr>
+                    <th>Total Paga Bruto</th>
+                    <th>TAP që duhet paguar sipas ligjit</th>
+                    <th>TAP i Paguajtur deri tani</th>
+                    <th>Diferenca</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="totalGrossSalaryTAP">0</td>
+                    <td id="tapPayableByLaw">0</td>
+                    <td id="tapPaidSoFar">0</td>
+                    <td id="tapDifference">0</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="export-buttons">
+            <button class="btn" id="exportExcel">Eksporto në Excel</button>
+            <button class="btn" id="exportPDF">Eksporto në PDF</button>
+            <button class="btn" id="printTable">Printo</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        Ky është versioni 2.1 i projektit DIVA, i themeluar më 14 Dhjetor 2024. Zhvilluar nga rqenani@gmail.com.<br>
+        Vëmendje: Programi mund të dalë nga funksioni nëse ka ndryshime ligjore ose nënligjore që ndikojnë formulën e llogaritjes. © 2024.
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const table = $('#divaTable').DataTable();
+
+            function calculateTAP(grossSalary) {
+                if (grossSalary <= 50000) {
+                    return 0;
+                } else if (grossSalary <= 60000) {
+                    return (grossSalary - 35000) * 0.13;
+                } else if (grossSalary <= 200000) {
+                    return (grossSalary - 30000) * 0.13;
+                } else {
+                    return 22100 + (grossSalary - 200000) * 0.23;
+                }
+            }
+
+            function updateTotals() {
+                let totalGrossSalary = 0;
+                let totalTapCalculated = 0;
+
+                $('#divaTable tbody tr').each(function () {
+                    const row = $(this);
+                    const bruto = parseFloat(row.find('td:eq(1)').text()) || 0;
+                    const tapCalculated = calculateTAP(bruto);
+
+                    totalGrossSalary += bruto;
+                    totalTapCalculated += tapCalculated;
+
+                    row.find('td:eq(2)').text(tapCalculated.toFixed(2));
+                });
+
+                const tapByLaw = calculateTAP(totalGrossSalary);
+
+                $('#totalGrossSalary').text(totalGrossSalary.toFixed(2));
+                $('#totalTapCalculated').text(totalTapCalculated.toFixed(2));
+                $('#totalGrossSalaryTAP').text(totalGrossSalary.toFixed(2));
+                $('#tapPayableByLaw').text(tapByLaw.toFixed(2));
+                $('#tapPaidSoFar').text(totalTapCalculated.toFixed(2));
+                $('#tapDifference').text((tapByLaw - totalTapCalculated).toFixed(2));
+            }
+
+            $('#divaTable tbody').on('input', 'td[contenteditable="true"]', function () {
+                updateTotals();
+            });
+
+            $('#addRow').on('click', function () {
+                const newRowIndex = $('#divaTable tbody tr').length + 1;
+                const newRow = `<tr>
+                    <td contenteditable="true">Puna ${newRowIndex}</td>
+                    <td contenteditable="true">0</td>
+                    <td contenteditable="true">0</td>
+                </tr>`;
+                $('#divaTable tbody').append(newRow);
+                updateTotals();
+            });
+
+            $('#removeRow').on('click', function () {
+                if ($('#divaTable tbody tr').length > 0) {
+                    $('#divaTable tbody tr:last').remove();
+                    updateTotals();
+                }
+            });
+
+            $('#exportExcel').on('click', function () {
+                table.button('.buttons-excel').trigger();
+            });
+
+            $('#exportPDF').on('click', function () {
+                table.button('.buttons-pdf').trigger();
+            });
+
+            $('#printTable').on('click', function () {
+                window.print();
+            });
+
+            updateTotals();
+        });
+    </script>
+</body>
+</html>
